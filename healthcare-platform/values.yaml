@@ -6,17 +6,17 @@ replicas:
 
 images:
   api:
-    repository: ""
+    repository: "ai-healthcare-dev-api"
     tag: "919daf0d84830235660636edd2610d2ce4db8834"
 
   aiService:
-    repository: ""
+    repository: "ai-healthcare-dev-ai-service"
     tag: ""
 
   worker:
-    repository: ""
+    repository: "ai-healthcare-dev-worker"
     tag: ""
 
   mockEhr:
-    repository: ""
+    repository: "ai-healthcare-dev-mock-ehr"
     tag: ""
