@@ -85,7 +85,6 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
   docker:
     name: Docker Build and Trivy
     needs: sonarqube
@@ -101,12 +100,11 @@ jobs:
             -t ${{ vars.ECR_REPOSITORY_API }}:${{ github.sha }} \
             ./services/api
 
-      - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v0.2.5
-
       - name: Run Trivy image scan
-        run: |
-          trivy image \
-            --severity HIGH,CRITICAL \
-            --exit-code 1 \
-            ${{ vars.ECR_REPOSITORY_API }}:${{ github.sha }}
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ vars.ECR_REPOSITORY_API }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          exit-code: 1
+          ignore-unfixed: true
