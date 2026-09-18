@@ -7,7 +7,7 @@ replicas:
 images:
   api:
     repository: ""
-    tag: ""
+    tag: "919daf0d84830235660636edd2610d2ce4db8834"
 
   aiService:
     repository: ""
