@@ -14,6 +14,7 @@ def test_health():
     assert response.json() == {
         "status": "healthy",
         "service": "mock-ehr",
+        "mode": "normal",
     }
 
 
@@ -41,6 +42,11 @@ def test_sync_failure():
         json={"job_id": "test-job-123"},
     )
 
-    assert response.status_code == 503
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["status"] == "success"
+    assert body["job_id"] == "test-job-123"
 
     app.EHR_FAILURE_MODE = "normal"
