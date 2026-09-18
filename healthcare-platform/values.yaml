@@ -19,4 +19,4 @@ images:
 
   mockEhr:
     repository: "ai-healthcare-dev-mock-ehr"
-    tag: ""
+    tag: "7e352af53b63ea4d4a0eb51019d5a3f83b5e8247"
