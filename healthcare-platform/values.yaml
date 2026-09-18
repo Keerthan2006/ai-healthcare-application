@@ -15,7 +15,7 @@ images:
 
   worker:
     repository: "ai-healthcare-dev-worker"
-    tag: ""
+    tag: "eb58201b8897f3045c825eff76447ea83ef81b40"
 
   mockEhr:
     repository: "ai-healthcare-dev-mock-ehr"
