@@ -29,6 +29,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Gitleaks
+        run: apt update && apt install gitleaks
+
       - name: Run Gitleaks
         run: |
           gitleaks detect \
