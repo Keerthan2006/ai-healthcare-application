@@ -27,7 +27,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -69,5 +68,3 @@ jobs:
           AI_SERVICE_URL: http://localhost:8001
         run: |
           pytest
-
-      
