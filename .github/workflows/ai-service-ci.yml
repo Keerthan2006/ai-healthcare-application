@@ -1,19 +1,19 @@
-name: API CI
+name: AI Service CI
 
 on:
   push:
     branches:
       - main
     paths:
-      - "services/api/**"
-      - ".github/workflows/api-ci.yml"
+      - "services/ai-service/**"
+      - ".github/workflows/ai-service-ci.yml"
 
   pull_request:
     branches:
       - main
     paths:
-      - "services/api/**"
-      - ".github/workflows/api-ci.yml"
+      - "services/ai-service/**"
+      - ".github/workflows/ai-service-ci.yml"
 
   workflow_dispatch:
 
@@ -21,8 +21,8 @@ permissions:
   contents: read
 
 jobs:
-  api-ci:
-    name: API CI
+  ai-service-ci:
+    name: AI Service CI
     runs-on: ubuntu-latest
 
     steps:
@@ -41,38 +41,31 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: services/api/requirements.txt
+          cache-dependency-path: services/ai-service/requirements.txt
 
       - name: Install dependencies
-        working-directory: services/api
+        working-directory: services/ai-service
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest ruff
 
       - name: Run Ruff
-        working-directory: services/api
+        working-directory: services/ai-service
         run: |
           ruff check .
 
       - name: Run tests
-        working-directory: services/api
+        working-directory: services/ai-service
         env:
           PYTHONPATH: .
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
-          POSTGRES_USER: ${{ vars.DATABASE_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
-          POSTGRES_DB: ${{ vars.DATABASE_DB }}
-          AI_SERVICE_URL: http://localhost:8001
+          FAILURE_MODE: false
         run: |
           pytest
 
   sonarqube:
     name: SonarQube
-    needs: api-ci
+    needs: ai-service-ci
     runs-on: ubuntu-latest
 
     steps:
@@ -85,13 +78,14 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995
         with:
           args: >
-           -Dsonar.projectKey=Keerthan2006_ai-healthcare-api
-           -Dsonar.sources=services/api
-           -Dsonar.tests=services/api/tests
-           -Dsonar.exclusions=services/api/tests/**
-           -Dsonar.test.inclusions=services/api/tests/**/*.py
+            -Dsonar.projectKey=Keerthan2006_ai-healthcare-ai-service
+            -Dsonar.sources=services/ai-service
+            -Dsonar.tests=services/ai-service/tests
+            -Dsonar.test.inclusions=services/ai-service/tests/**/*.py
+            -Dsonar.exclusions=services/ai-service/tests/**
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
   docker:
     name: Docker Build and Trivy
     needs: sonarqube
@@ -104,19 +98,20 @@ jobs:
       - name: Build Docker image
         run: |
           docker build \
-            -t ${{ vars.ECR_REPOSITORY_API }}:${{ github.sha }} \
-            ./services/api
+            -t ${{ vars.ECR_REPOSITORY_AI_SERVICE }}:${{ github.sha }} \
+            ./services/ai-service
 
       - name: Run Trivy image scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
-          image-ref: ${{ vars.ECR_REPOSITORY_API }}:${{ github.sha }}
+          image-ref: ${{ vars.ECR_REPOSITORY_AI_SERVICE }}:${{ github.sha }}
           severity: HIGH,CRITICAL
           exit-code: 1
           ignore-unfixed: true
+
   push-ecr:
-    name: Push API Image to ECR
+    name: Push AI Service Image to ECR
     needs: docker
     runs-on: ubuntu-latest
 
@@ -138,24 +133,25 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build API image
+      - name: Build AI Service image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY_API }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY_AI_SERVICE }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            ./services/api
+            ./services/ai-service
 
-      - name: Push API image
+      - name: Push AI Service image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY_API }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY_AI_SERVICE }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker push \
             $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
   update-tag:
     permissions:
       contents: write
@@ -173,7 +169,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Update API image tag
+      - name: Update AI Service image tag
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -184,7 +180,7 @@ jobs:
 
           new_tag = "${{ github.sha }}"
 
-          pattern = r'(^  api:\n    repository: "[^"]*"\n    tag: ")[^"]*(")'
+          pattern = r'(^  aiService:\n    repository: "[^"]*"\n    tag: ")[^"]*(")'
           replacement = rf'\g<1>{new_tag}\g<2>'
 
           content = re.sub(pattern, replacement, content, count=1)
@@ -203,6 +199,6 @@ jobs:
 
           git add healthcare-platform/values.yaml
 
-          git diff --cached --quiet || git commit -m "chore: update API image tag"
+          git diff --cached --quiet || git commit -m "chore: update AI service image tag"
 
           git push
