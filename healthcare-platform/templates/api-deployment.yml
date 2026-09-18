@@ -24,7 +24,7 @@ spec:
 
       containers:
       - name: api
-        image: "{{ .Values.images.api.repository }}:{{ .Values.images.api.tag }}"
+        image: "{{ .Values.global.imageRegistry }}/{{ .Values.images.api.repository }}:{{ .Values.images.api.tag }}"
         ports:
         - containerPort: 8000
         envFrom:

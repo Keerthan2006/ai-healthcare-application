@@ -24,7 +24,7 @@ spec:
 
       containers:
         - name: worker
-          image: "{{ .Values.images.worker.repository }}:{{ .Values.images.worker.tag }}"
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.images.worker.repository }}:{{ .Values.images.worker.tag }}"
 
           ports:
             - containerPort: 8003

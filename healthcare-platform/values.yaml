@@ -1,3 +1,5 @@
+global:
+  imageRegistry: "181077295903.dkr.ecr.ap-south-1.amazonaws.com"
 replicas:
   api: 2
   aiService: 1

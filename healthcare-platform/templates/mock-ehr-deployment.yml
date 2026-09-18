@@ -24,7 +24,7 @@ spec:
 
       containers:
         - name: mock-ehr
-          image: "{{ .Values.images.mockEhr.repository }}:{{ .Values.images.mockEhr.tag }}"
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.images.mockEhr.repository }}:{{ .Values.images.mockEhr.tag }}"
 
           ports:
             - containerPort: 8002
