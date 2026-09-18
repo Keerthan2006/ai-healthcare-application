@@ -22,9 +22,14 @@ spec:
     spec:
       containers:
         - name: ai-service
+          image: "{{ .Values.images.aiService.repository }}:{{ .Values.images.aiService.tag }}"
 
           ports:
             - containerPort: 8001
+
+          envFrom:
+            - configMapRef:
+                name: ai-service-config
 
           livenessProbe:
             httpGet:
