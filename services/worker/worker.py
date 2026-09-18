@@ -1,17 +1,15 @@
 import os
 import time
 
+import psycopg2
 import redis
 import requests
-import psycopg2
-
 from prometheus_client import (
     Counter,
-    Histogram,
     Gauge,
+    Histogram,
     start_http_server,
 )
-
 
 # =========================
 # Environment Variables
@@ -167,7 +165,7 @@ def update_job_status(job_id, status):
             flush=True,
         )
 
-    except Exception as error:
+    except psycopg2.Error as error:
 
         if connection:
             connection.rollback()
@@ -231,7 +229,7 @@ def increment_attempt(job_id):
 
         return attempts
 
-    except Exception as error:
+    except psycopg2.Error as error:
 
         if connection:
             connection.rollback()
@@ -406,7 +404,7 @@ while True:
         # Job Processing Failure
         # =========================
 
-        except Exception as error:
+        except requests.RequestException as error:
 
             print(
                 f"Job {job_id} failed: {error}",
