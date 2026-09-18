@@ -31,12 +31,14 @@ spec:
               protocol: TCP
 
           envFrom:
-            - configMapRef:
-                name: postgres-config
-            - configMapRef:
-                name: worker-config
-            - secretRef:
-                name: postgres-secret
+          - configMapRef:
+              name: postgres-config
+          - secretRef:
+              name: postgres-secret
+          - configMapRef:
+              name: redis-config
+          - configMapRef:
+              name: api-config
 
           resources:
             requests:
