@@ -11,7 +11,7 @@ images:
 
   aiService:
     repository: "ai-healthcare-dev-ai-service"
-    tag: ""
+    tag: "7a2554e8739175ab8c0d4f672dee5a3ec0dc6e67"
 
   worker:
     repository: "ai-healthcare-dev-worker"
