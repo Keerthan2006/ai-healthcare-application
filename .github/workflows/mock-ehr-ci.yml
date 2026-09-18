@@ -1,0 +1,232 @@
+name: Mock EHR CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "services/mock-ehr/**"
+      - ".github/workflows/mock-ehr-ci.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "services/mock-ehr/**"
+      - ".github/workflows/mock-ehr-ci.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mock-ehr-ci:
+    name: Mock EHR CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/mock-ehr/requirements.txt
+
+      - name: Install dependencies
+        working-directory: services/mock-ehr
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest ruff
+
+      - name: Run Ruff
+        working-directory: services/mock-ehr
+        run: |
+          ruff check .
+
+      - name: Run tests
+        working-directory: services/mock-ehr
+        run: |
+          pytest
+
+
+  sonarqube:
+    name: SonarQube
+    needs: mock-ehr-ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995
+        with:
+          args: >
+            -Dsonar.projectKey=Keerthan2006_ai-healthcare-mock-ehr
+            -Dsonar.sources=services/mock-ehr
+            -Dsonar.tests=services/mock-ehr/tests
+            -Dsonar.test.inclusions=services/mock-ehr/tests/**/*.py
+            -Dsonar.exclusions=services/mock-ehr/tests/**
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+
+  docker:
+    name: Docker Build and Trivy
+    needs: sonarqube
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ vars.ECR_REPOSITORY_MOCK_EHR }}:${{ github.sha }} \
+            ./services/mock-ehr
+
+      - name: Run Trivy image scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ vars.ECR_REPOSITORY_MOCK_EHR }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          exit-code: 1
+          ignore-unfixed: true
+
+
+  push-ecr:
+    name: Push Mock EHR Image to ECR
+    needs: docker
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Mock EHR image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY_MOCK_EHR }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            ./services/mock-ehr
+
+      - name: Push Mock EHR image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY_MOCK_EHR }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push \
+            $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+
+  update-tag:
+    permissions:
+      contents: write
+
+    name: Update Helm Image Tag
+    needs: push-ecr
+    runs-on: ubuntu-latest
+
+    env:
+      SECRET: ${{ secrets.email }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Update Mock EHR image tag
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os
+
+          path = Path("healthcare-platform/values.yaml")
+          lines = path.read_text().splitlines()
+
+          image_tag = os.environ["IMAGE_TAG"]
+          inside_mock_ehr = False
+          updated = False
+
+          for i, line in enumerate(lines):
+              if line == "  mockEhr:":
+                  inside_mock_ehr = True
+                  continue
+
+              if inside_mock_ehr:
+                  if line.startswith("  ") and not line.startswith("    "):
+                      break
+
+                  if line.strip().startswith("tag:"):
+                      lines[i] = f'    tag: "{image_tag}"'
+                      updated = True
+                      break
+
+          if not updated:
+              raise RuntimeError(
+                  "Could not find mockEhr.tag in healthcare-platform/values.yaml"
+              )
+
+          path.write_text("\n".join(lines) + "\n")
+          PY
+
+      - name: Show updated values
+        run: |
+          echo "Updated Helm values:"
+          cat healthcare-platform/values.yaml
+
+      - name: Validate Helm chart
+        run: |
+          helm lint healthcare-platform
+
+      - name: Git add-push
+        run: |
+          git config --global user.name "${{ vars.username }}"
+          git config --global user.email "$SECRET"
+
+          git add healthcare-platform/values.yaml
+
+          if git diff --cached --quiet; then
+            echo "No changes detected"
+            exit 0
+          fi
+
+          git commit -m "chore: update mock-ehr image tag"
+          git push
