@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-ehr
+  namespace: healthcare
+  labels:
+    app: mock-ehr
+spec:
+   replicas: {{ .Values.replicas.mockEhr }}
+
+  selector:
+    matchLabels:
+      app: mock-ehr
+
+  template:
+    metadata:
+      labels:
+        app: mock-ehr
+
+    spec:
+      enableServiceLinks: false
+
+      containers:
+        - name: mock-ehr
+          image: "{{ .Values.images.mockEhr.repository }}:{{ .Values.images.mockEhr.tag }}"
+          imagePullPolicy: Never
+
+          ports:
+            - containerPort: 8002
+
+          envFrom:
+            - configMapRef:
+                name: mock-ehr-config
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 10

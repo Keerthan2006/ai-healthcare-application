@@ -1,0 +1,22 @@
+replicas:
+  api: 2
+  aiService: 1
+  worker: 1
+  mockEhr: 1
+
+images:
+  api:
+    repository: ""
+    tag: ""
+
+  aiService:
+    repository: ""
+    tag: ""
+
+  worker:
+    repository: ""
+    tag: ""
+
+  mockEhr:
+    repository: ""
+    tag: ""
