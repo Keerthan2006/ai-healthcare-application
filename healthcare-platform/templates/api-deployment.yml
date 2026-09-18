@@ -25,7 +25,6 @@ spec:
       containers:
       - name: api
         image: "{{ .Values.images.api.repository }}:{{ .Values.images.api.tag }}"
-        imagePullPolicy: Never
         ports:
         - containerPort: 8000
         envFrom:

@@ -24,7 +24,6 @@ spec:
       containers:
         - name: worker
           image: "{{ .Values.images.worker.repository }}:{{ .Values.images.worker.tag }}"
-          imagePullPolicy: Never
           ports:
             - containerPort: 8003
               protocol: TCP

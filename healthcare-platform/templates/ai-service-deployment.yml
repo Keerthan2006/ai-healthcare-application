@@ -22,7 +22,6 @@ spec:
       containers:
         - name: ai-service
          replicas: {{ .Values.replicas.aiService }}
-          imagePullPolicy: Never
 
           ports:
             - containerPort: 8001

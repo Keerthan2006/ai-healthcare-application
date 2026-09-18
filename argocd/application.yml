@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-healthcare
+  namespace: argocd
+
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/Keerthan2006/ai-healthcare-application.git
+    targetRevision: main
+    path: healthcare-platform
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: healthcare
+
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true

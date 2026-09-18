@@ -23,7 +23,6 @@ spec:
       containers:
         - name: mock-ehr
           image: "{{ .Values.images.mockEhr.repository }}:{{ .Values.images.mockEhr.tag }}"
-          imagePullPolicy: Never
 
           ports:
             - containerPort: 8002
