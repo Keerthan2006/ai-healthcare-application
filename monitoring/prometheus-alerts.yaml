@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-alerts
+  namespace: healthcare
+
+data:
+  alerts.yml: |
+    groups:
+      - name: healthcare-platform-alerts
+        rules:
+
+          # 1. API availability
+          - alert: APIDown
+            expr: up{job="api"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "API service is down"
+              description: "Prometheus cannot scrape the API service."
+
+          # 2. High API latency
+          - alert: HighAPILatency
+            expr: |
+              (
+                rate(api_request_latency_seconds_sum[1m])
+                /
+                rate(api_request_latency_seconds_count[1m])
+              ) > 1
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High API latency"
+              description: "Average API request latency is above 1 second."
+
+          # 3. Queue backlog
+          - alert: QueueBacklog
+            expr: worker_queue_depth > 10
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Healthcare job queue backlog"
+              description: "More than 10 jobs are waiting in the healthcare queue."
+
+          # 4. Worker permanently failing jobs
+          - alert: WorkerJobFailures
+            expr: rate(worker_jobs_failed_total[1m]) > 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Worker jobs are failing"
+              description: "The worker is permanently failing healthcare jobs."
+
+          # 5. Worker retries
+          - alert: WorkerRetries
+            expr: rate(worker_jobs_retried_total[1m]) > 0
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Worker retries detected"
+              description: "The worker is retrying healthcare jobs."
+
+          # 6. Slow worker processing
+          - alert: SlowWorkerProcessing
+            expr: |
+              (
+                rate(worker_job_processing_seconds_sum[1m])
+                /
+                rate(worker_job_processing_seconds_count[1m])
+              ) > 5
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Slow worker processing"
+              description: "Average worker job processing time is above 5 seconds."

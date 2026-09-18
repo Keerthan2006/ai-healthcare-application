@@ -1,0 +1,8 @@
+.env
+.venv/
+.git-corrupted/
+
+k8s/*-config.yml
+k8s/*-configmap.yml
+k8s/*-secret.yml
+monitoring/*-config.yml
