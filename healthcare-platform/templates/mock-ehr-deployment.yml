@@ -1,12 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: mock-ehr
   namespace: healthcare
   labels:
     app: mock-ehr
+
 spec:
-   replicas: {{ .Values.replicas.mockEhr }}
+  replicas: {{ .Values.replicas.mockEhr }}
 
   selector:
     matchLabels:
@@ -35,7 +37,6 @@ spec:
             requests:
               cpu: "100m"
               memory: "128Mi"
-
             limits:
               cpu: "500m"
               memory: "256Mi"
