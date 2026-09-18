@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: healthcare
+  labels:
+    app: worker
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: worker
+
+  template:
+    metadata:
+      labels:
+        app: worker
+
+    spec:
+      enableServiceLinks: false
+
+      containers:
+        - name: worker
+          image: ai-healthcare-platform-worker:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8003
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: postgres-config
+            - configMapRef:
+                name: worker-config
+            - secretRef:
+                name: postgres-secret
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
