@@ -32,6 +32,8 @@ spec:
               name: postgres-config
           - secretRef:
               name: postgres-secret
+          - configMapRef:
+              name: api-config
         livenessProbe:
           httpGet:
             path: /health
