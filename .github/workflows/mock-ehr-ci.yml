@@ -59,6 +59,7 @@ jobs:
         working-directory: services/mock-ehr
         env:
           PYTHONPATH: .
+          EHR_FAILURE_MODE: normal
         run: |
           pytest
 
