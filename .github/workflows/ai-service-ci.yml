@@ -152,7 +152,7 @@ jobs:
           docker push \
             $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-  update-tag:
+   update-tag:
     permissions:
       contents: write
 
@@ -170,27 +170,50 @@ jobs:
           fetch-depth: 0
 
       - name: Update AI Service image tag
+        env:
+          IMAGE_TAG: ${{ github.sha }}
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
+          import os
 
           path = Path("healthcare-platform/values.yaml")
-          content = path.read_text()
+          lines = path.read_text().splitlines()
 
-          new_tag = "${{ github.sha }}"
+          image_tag = os.environ["IMAGE_TAG"]
+          inside_ai_service = False
+          updated = False
 
-          pattern = r'(^  aiService:\n    repository: "[^"]*"\n    tag: ")[^"]*(")'
-          replacement = rf'\g<1>{new_tag}\g<2>'
+          for i, line in enumerate(lines):
+              if line == "  aiService:":
+                  inside_ai_service = True
+                  continue
 
-          content = re.sub(pattern, replacement, content, count=1)
+              if inside_ai_service:
+                  if line.startswith("  ") and not line.startswith("    "):
+                      break
 
-          path.write_text(content)
+                  if line.strip().startswith("tag:"):
+                      lines[i] = f'    tag: "{image_tag}"'
+                      updated = True
+                      break
+
+          if not updated:
+              raise RuntimeError(
+                  "Could not find aiService.tag in healthcare-platform/values.yaml"
+              )
+
+          path.write_text("\n".join(lines) + "\n")
           PY
 
       - name: Show updated values
         run: |
+          echo "Updated Helm values:"
           cat healthcare-platform/values.yaml
+
+      - name: Validate Helm chart
+        run: |
+          helm lint healthcare-platform
 
       - name: Git add-push
         run: |
@@ -199,6 +222,11 @@ jobs:
 
           git add healthcare-platform/values.yaml
 
-          git diff --cached --quiet || git commit -m "chore: update AI service image tag"
+          if git diff --cached --quiet; then
+            echo "No changes detected"
+            exit 0
+          fi
+
+          git commit -m "chore: update AI service image tag"
 
           git push
