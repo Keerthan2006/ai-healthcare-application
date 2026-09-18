@@ -149,3 +149,38 @@ jobs:
         run: |
           docker push \
             $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+  update-tag:
+    permissions:
+      contents: write
+
+    name: Update Helm Image Tag
+    needs: push-ecr
+    runs-on: ubuntu-latest
+
+    env:
+      SECRET: ${{ secrets.email }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Update API image tag
+        run: |
+          sed -i '/^  api:/,/^  aiService:/ s/tag: .*/tag: "${{ github.sha }}"/' healthcare-platform/values.yaml
+
+      - name: Show updated values
+        run: |
+          cat healthcare-platform/values.yaml
+
+      - name: Git add-push
+        run: |
+          git config --global user.name "${{ vars.username }}"
+          git config --global user.email "$SECRET"
+
+          git add healthcare-platform/values.yaml
+
+          git diff --cached --quiet || git commit -m "chore: update API image tag"
+
+          git push
