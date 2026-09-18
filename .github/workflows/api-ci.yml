@@ -168,7 +168,22 @@ jobs:
 
       - name: Update API image tag
         run: |
-          sed -i '/^  api:/,/^  aiService:/ s/tag: .*/tag: "${{ github.sha }}"/' healthcare-platform/values.yaml
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path("healthcare-platform/values.yaml")
+          content = path.read_text()
+
+          new_tag = "${{ github.sha }}"
+
+          pattern = r'(^  api:\n    repository: "[^"]*"\n    tag: ")[^"]*(")'
+          replacement = rf'\g<1>{new_tag}\g<2>'
+
+          content = re.sub(pattern, replacement, content, count=1)
+
+          path.write_text(content)
+          PY
 
       - name: Show updated values
         run: |
