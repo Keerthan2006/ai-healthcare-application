@@ -1,7 +1,6 @@
 from database import get_connection
 from models import CREATE_JOBS_TABLE
 
-
 connection = get_connection()
 
 cursor = connection.cursor()

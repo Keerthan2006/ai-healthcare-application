@@ -2,7 +2,6 @@ import os
 
 import psycopg2
 
-
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_PORT = int(os.getenv("POSTGRES_PORT"))
 POSTGRES_USER = os.getenv("POSTGRES_USER")

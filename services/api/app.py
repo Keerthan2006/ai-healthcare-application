@@ -1,23 +1,20 @@
 import os
-import uuid
 import time
+import uuid
 
 import httpx
 import psycopg2
 import redis
-
-from database import get_connection
-
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
-
 from prometheus_client import (
+    CONTENT_TYPE_LATEST,
     Counter,
     Histogram,
     generate_latest,
-    CONTENT_TYPE_LATEST,
 )
 
+from database import get_connection
 
 app = FastAPI(title="Healthcare API")
 
@@ -132,7 +129,7 @@ def ready():
             "status": "ready",
         }
 
-    except Exception as error:
+    except (redis.RedisError, psycopg2.Error) as error:
 
         raise HTTPException(
             status_code=503,
@@ -212,7 +209,7 @@ def create_job():
 
         cursor.close()
 
-    except Exception as error:
+    except psycopg2.Error as error:
 
         if connection:
             connection.rollback()
