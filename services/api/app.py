@@ -16,15 +16,9 @@ from prometheus_client import (
 
 from database import get_connection
 
-app = FastAPI(title="Healthcare API")
+app = FastAPI(title="Healthcare API Platform")
 
 
-# =========================
-# Environment Variables
-# =========================
-
-# All configuration is injected through Docker Compose / Kubernetes.
-# No credentials or environment-specific values are hardcoded here.
 
 REDIS_HOST = os.environ["REDIS_HOST"]
 REDIS_PORT = int(os.environ["REDIS_PORT"])
@@ -38,10 +32,6 @@ POSTGRES_DB = os.environ["POSTGRES_DB"]
 AI_SERVICE_URL = os.environ["AI_SERVICE_URL"]
 
 
-# =========================
-# Prometheus Metrics
-# =========================
-
 REQUEST_COUNT = Counter(
     "api_requests_total",
     "Total number of API requests",
@@ -53,11 +43,6 @@ REQUEST_LATENCY = Histogram(
     "API request latency in seconds",
     ["method", "endpoint"],
 )
-
-
-# =========================
-# Metrics Middleware
-# =========================
 
 @app.middleware("http")
 async def metrics_middleware(request, call_next):
@@ -82,10 +67,6 @@ async def metrics_middleware(request, call_next):
     return response
 
 
-# =========================
-# Health Check
-# =========================
-
 @app.get("/health")
 def health():
 
@@ -95,9 +76,6 @@ def health():
     }
 
 
-# =========================
-# Readiness Check
-# =========================
 
 @app.get("/ready")
 def ready():
@@ -137,9 +115,6 @@ def ready():
         )
 
 
-# =========================
-# API Status
-# =========================
 
 @app.get("/api/v1/status")
 def status():
@@ -150,10 +125,6 @@ def status():
         "status": "running",
     }
 
-
-# =========================
-# AI Request
-# =========================
 
 @app.post("/api/v1/ai")
 async def ai_request():
@@ -178,10 +149,6 @@ async def ai_request():
         ),
     }
 
-
-# =========================
-# Create Job
-# =========================
 
 @app.post("/api/v1/jobs")
 def create_job():
@@ -242,10 +209,6 @@ def create_job():
     }
 
 
-# =========================
-# Queue Status
-# =========================
-
 @app.get("/api/v1/queue")
 def queue_status():
 
@@ -260,11 +223,6 @@ def queue_status():
         "queue": "healthcare_jobs",
         "depth": depth,
     }
-
-
-# =========================
-# Prometheus Metrics
-# =========================
 
 @app.get("/metrics")
 def metrics():

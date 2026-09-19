@@ -11,18 +11,6 @@ from prometheus_client import (
     start_http_server,
 )
 
-# =========================
-# Environment Variables
-# =========================
-
-# All configuration is supplied through environment variables.
-# Local development:
-#   docker-compose.yml -> .env
-#
-# Kubernetes:
-#   ConfigMap / Secret -> environment variables
-#
-# No passwords or secrets are stored in this file.
 
 REDIS_HOST = os.environ["REDIS_HOST"]
 REDIS_PORT = int(os.environ["REDIS_PORT"])
@@ -38,10 +26,6 @@ EHR_URL = os.environ["EHR_SERVICE_URL"]
 PROCESSING_TIME = float(os.environ["PROCESSING_TIME"])
 MAX_ATTEMPTS = int(os.environ["MAX_ATTEMPTS"])
 
-
-# =========================
-# Prometheus Metrics
-# =========================
 
 JOBS_PROCESSED = Counter(
     "worker_jobs_processed_total",
@@ -69,9 +53,6 @@ QUEUE_DEPTH = Gauge(
 )
 
 
-# =========================
-# Start Metrics Server
-# =========================
 
 start_http_server(8003)
 
@@ -80,10 +61,6 @@ print(
     flush=True,
 )
 
-
-# =========================
-# Redis Client
-# =========================
 
 redis_client = redis.Redis(
     host=REDIS_HOST,
@@ -94,9 +71,6 @@ redis_client = redis.Redis(
 )
 
 
-# =========================
-# Update Queue Depth
-# =========================
 
 def update_queue_depth():
 
@@ -124,10 +98,6 @@ def update_queue_depth():
 
         return None
 
-
-# =========================
-# Update Job Status
-# =========================
 
 def update_job_status(job_id, status):
 
@@ -248,33 +218,21 @@ def increment_attempt(job_id):
             connection.close()
 
 
-# =========================
-# Worker Started
-# =========================
-
 print(
     "Worker started",
     flush=True,
 )
 
 
-# =========================
-# Main Worker Loop
-# =========================
 
 while True:
 
     try:
 
-        # =========================
-        # Update Queue Depth
-        # =========================
 
         update_queue_depth()
 
-        # =========================
-        # Wait for Job
-        # =========================
+
 
         print(
             "Waiting for jobs...",
@@ -299,12 +257,10 @@ while True:
             flush=True,
         )
 
-        # Update queue depth after receiving job
+
         update_queue_depth()
 
-        # =========================
-        # Increment Attempt
-        # =========================
+
 
         attempts = increment_attempt(job_id)
 
@@ -328,18 +284,14 @@ while True:
 
             continue
 
-        # =========================
-        # Mark Processing
-        # =========================
+
 
         update_job_status(
             job_id,
             "PROCESSING",
         )
 
-        # =========================
-        # Process Job
-        # =========================
+
 
         try:
 
@@ -351,9 +303,7 @@ while True:
             # Simulate processing time
             time.sleep(PROCESSING_TIME)
 
-            # =========================
-            # Call Mock EHR
-            # =========================
+
 
             print(
                 f"Calling EHR: {EHR_URL}/sync",
@@ -375,9 +325,7 @@ while True:
                 flush=True,
             )
 
-            # =========================
-            # Job Completed
-            # =========================
+
 
             update_job_status(
                 job_id,
@@ -400,9 +348,6 @@ while True:
                 flush=True,
             )
 
-        # =========================
-        # Job Processing Failure
-        # =========================
 
         except requests.RequestException as error:
 
@@ -419,9 +364,6 @@ while True:
                 processing_time
             )
 
-            # =========================
-            # Maximum Attempts Reached
-            # =========================
 
             if attempts >= MAX_ATTEMPTS:
 
@@ -445,9 +387,6 @@ while True:
                     flush=True,
                 )
 
-            # =========================
-            # Retry Job
-            # =========================
 
             else:
 
@@ -474,15 +413,9 @@ while True:
 
                 time.sleep(2)
 
-        # =========================
-        # Update Queue Depth
-        # =========================
-
         update_queue_depth()
 
-    # =========================
-    # Redis Failure
-    # =========================
+
 
     except redis.exceptions.RedisError as error:
 

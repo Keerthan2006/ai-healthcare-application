@@ -6,19 +6,8 @@ from fastapi import FastAPI
 app = FastAPI(title="AI Agent Service")
 
 
-# =========================
-# Environment Variables
-# =========================
-
-# Configuration is injected through Docker Compose / Kubernetes.
-# No secrets or hardcoded configuration values are stored here.
-
 FAILURE_MODE = os.environ["FAILURE_MODE"]
 
-
-# =========================
-# Health Check
-# =========================
 
 @app.get("/health")
 def health():
@@ -28,10 +17,6 @@ def health():
         "service": "ai-service"
     }
 
-
-# =========================
-# AI Prediction
-# =========================
 
 @app.post("/predict")
 async def predict(data: dict):
@@ -48,16 +33,8 @@ async def predict(data: dict):
         }
 
 
-    # =========================
-    # Simulate AI Processing
-    # =========================
-
     await asyncio.sleep(0.2)
 
-
-    # =========================
-    # Successful Response
-    # =========================
 
     return {
         "status": "success",
